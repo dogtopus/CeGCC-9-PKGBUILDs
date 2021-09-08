@@ -1,0 +1,45 @@
+# Maintainer: dogtopus <dogtopus@users.noreply.github.com>
+
+_target='arm-mingw32ce'
+_mingwrt_commit='cd5f3e6465fdc9b0e968821cce98092251367fc8'
+_w32api_commit='8e64b608fc9c4d81e206e920ecc977d941577bef'
+
+pkgname=arm-mingw32ce-mingwrt
+pkgver=r188
+pkgrel=2
+pkgdesc="MinGW C runtime library for CeGCC 9 compiler."
+arch=('any')
+url="https://max.kellermann.name/projects/cegcc/"
+license=('custom')
+groups=('arm-mingw32ce-toolchain' 'arm-mingw32ce')
+makedepends=('arm-mingw32ce-gcc' 'arm-mingw32ce-binutils')
+options=('!strip' '!buildflags' 'staticlibs' '!emptydirs')
+source=("git+https://github.com/MaxKellermann/mingwrt.git#commit=${_mingwrt_commit}"
+        # For windows headers.
+        "git+https://github.com/MaxKellermann/w32api.git#commit=${_w32api_commit}")
+sha256sums=('SKIP'
+            'SKIP')
+
+prepare() {
+    cd "$srcdir/mingwrt"
+}
+
+build() {
+    cd "$srcdir/mingwrt"
+    export BASE_DIRECTORY="$srcdir"
+    ./configure --prefix="/usr" \
+        --build="${CHOST}" \
+        --host="${_target}" \
+        --target="${_target}"
+    make
+}
+
+package() {
+    cd "$srcdir/mingwrt"
+    make DESTDIR="$pkgdir/" install -j1
+    # Remove Windows-specific files (should be provided by arm-mingw32ce-w32api package)
+    rm "$pkgdir/usr/${_target}/include/excpt.h"
+    rm "$pkgdir/usr/${_target}/lib/libcoredll.a"
+    # Remove redundant manpages
+    rm -r "$pkgdir"/usr/share/man/man3/{basename,dirname}.3
+}

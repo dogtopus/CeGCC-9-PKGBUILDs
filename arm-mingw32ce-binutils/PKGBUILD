@@ -1,0 +1,37 @@
+# Maintainer: dogtopus <dogtopus@users.noreply.github.com>
+
+_target='arm-mingw32ce'
+_commit='c8917be9f89a730221e2bff5f24a3c01b086d33d'
+
+pkgname=arm-mingw32ce-binutils
+pkgver=2.34.0
+pkgrel=1
+pkgdesc="Cross binutils for CeGCC 9 compiler."
+arch=('x86_64')
+url="https://max.kellermann.name/projects/cegcc/"
+license=('GPL')
+groups=('arm-mingw32ce-toolchain' 'arm-mingw32ce')
+depends=('zlib')
+source=("git+https://github.com/MaxKellermann/binutils-gdb.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+#prepare() {
+#    cd "$srcdir/binutils-gdb"
+#}
+
+build() {
+    cd "$srcdir/binutils-gdb"
+    ./configure --prefix=/usr \
+        --target=${_target} \
+        --infodir=/usr/share/info/${_target} \
+        --disable-gdb \
+        --disable-unit-tests \
+        --disable-nls \
+        --disable-werror
+    make
+}
+
+package() {
+    cd "$srcdir/binutils-gdb"
+    make DESTDIR="$pkgdir/" install
+}

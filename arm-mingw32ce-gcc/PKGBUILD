@@ -1,0 +1,68 @@
+# Maintainer: dogtopus <dogtopus@users.noreply.github.com>
+
+_target='arm-mingw32ce'
+_commit='a32a4bae1d0fb408c65ce974ad4a93e38480a517'
+_islver=0.21
+
+pkgname=arm-mingw32ce-gcc
+pkgver=9.3.0
+pkgrel=1
+pkgdesc="Cross GCC for CeGCC 9 compiler."
+arch=('x86_64')
+url="https://max.kellermann.name/projects/cegcc/"
+license=('GPL' 'LGPL' 'FDL' 'custom')
+groups=('arm-mingw32ce-bootstrap' 'arm-mingw32ce')
+depends=('zlib' 'libmpc' 'arm-mingw32ce-binutils' 'arm-mingw32ce-mingwrt' 'arm-mingw32ce-w32api')
+provides=('arm-mingw32ce-gcc')
+conflicts=('arm-mingw32ce-gcc')
+replaces=('arm-mingw32ce-gcc-base')
+source=("git+https://github.com/MaxKellermann/gcc.git#commit=${_commit}"
+        "http://isl.gforge.inria.fr/isl-${_islver}.tar.bz2")
+sha256sums=('SKIP'
+            'd18ca11f8ad1a39ab6d03d3dcb3365ab416720fcb65b42d69f34f51bf0a0e859')
+
+prepare() {
+    cd "$srcdir/gcc"
+    # link isl for in-tree builds
+    ln -sf ../isl-${_islver} isl
+}
+
+build() {
+    mkdir -p "$srcdir/build-${_target}"
+    cd "$srcdir/build-${_target}"
+
+    # temporarily disable -Werror=format-security because it breaks the build
+    export CFLAGS="${CFLAGS} -Wno-error=format-security"
+    export CXXFLAGS="${CXXFLAGS} -Wno-error=format-security"
+
+    echo '=> Configuring gcc...'
+    $srcdir/gcc/configure --prefix=/usr \
+        --libexecdir=/usr/lib \
+        --target=${_target} \
+        --with-system-zlib \
+        --with-gcc \
+        --with-gnu-ld \
+        --with-gnu-as \
+        --enable-threads=win32 \
+        --disable-nls \
+        --enable-languages=c,c++ \
+        --disable-win32-registry \
+        --disable-multilib \
+        --disable-interwork \
+        --without-newlib \
+        --enable-checking \
+        --with-headers \
+        --disable-__cxa_atexit \
+        --disable-werror
+
+    echo '=> Building gcc...'
+    make
+}
+
+package() {
+    cd "$srcdir/build-${_target}"
+    make DESTDIR="$pkgdir/" install
+    # Remove redundant manual files, etc.
+    rm -r "$pkgdir/usr/share"
+    rm "$pkgdir"/usr/lib/libcc1.*
+}
